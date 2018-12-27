@@ -1,7 +1,7 @@
 
-<h1 *ngIf="!images || images.length == 0" style="text-align: center">
+<h3 *ngIf="!images || images.length == 0" style="text-align: center">
   {{msg}}
-</h1>
+</h3>
 
 <mat-progress-spinner *ngIf="mode=='indeterminate'"
                       class="example-margin"

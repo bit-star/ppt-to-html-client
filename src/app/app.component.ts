@@ -10,6 +10,7 @@ import {
 } from '@angular/animations';
 import {Title} from '@angular/platform-browser';
 import {MatSnackBar} from '@angular/material';
+import {environment} from '../environments/environment';
 
 declare var dd: any;
 
@@ -48,78 +49,59 @@ export class AppComponent   implements OnInit ,AfterViewInit  {
     this.activatedRoute.queryParams.subscribe((params: Params) => {
         const meetingFileId = params['meetingFileId'];
         if (meetingFileId) {
-          this.http
-            .get(
-              '/api/dingtalk/jssdk/config')
-            .subscribe(
-              val => {
-                console.log('Value emitted successfully', val);
-                const _config: any = val;
-                dd.config({
-                  agentId: _config.agentid,
-                  corpId: _config.corpId,
-                  timeStamp: _config.timeStamp,
-                  nonceStr: _config.nonceStr,
-                  signature: _config.signature,
-                  jsApiList: ['runtime.info', 'biz.contact.choose',
-                    'device.notification.confirm', 'device.notification.alert',
-                    'device.notification.prompt', 'biz.ding.post',
-                    'biz.util.openLink']
-                });
-                dd.ready(function () {
-                  dd.runtime.permission.requestAuthCode({
-                    corpId: _config.corpId,
-                    onSuccess: function (info) {
-                      that.http.get('/api/dingtalk/generation/imageList?code=' + info.code + '&corpid='
-                        + _config.corpId + '&meetingFileId=' + meetingFileId).subscribe((data:any) => {
-                          console.log('success fetch images:',data);
-                          that.images = data.urls;
-                          that.title=data.title;
-                          dd.biz.navigation.setTitle({
-                            title : data.title,//控制标题文本，空字符串表示显示默认文本
-                            onSuccess : function(result) {
-                              /*结构
-                              {
-                              }*/
-                            },
-                            onFail : function(err) {
-                              console.error('设置标题时出错 '+ JSON.stringify(err));
-                            }
-                          });
-                          // console.log(that.title,that.titleService.getTitle());
-                          that.mode='determinate'
-                          that.ref.markForCheck();
-                          that.ref.detectChanges();
-                        },
-                        error => {
-                          that.mode='determinate'
-                          that.msg='访问的资源不存在'
-                          console.error('获取图片数据时出错 '+ JSON.stringify(error));
-                          that.ref.markForCheck();
-                          that.ref.detectChanges();
-                        },
-                        () => console.log('HTTP Observable2 completed...'));
-                    },
-                    onFail: function (err) {
-                      console.error('获取认证Code失败: ' + JSON.stringify(err));
-                      that.mode='determinate'
-                      that.msg='获取认证Code失败'
-                    }
-                  });
-                });
-                dd.error(function (err) {
-                  console.error('钉钉 jssdk 错误回调: ' + JSON.stringify(err));
-                  that.mode='determinate'
-                  that.msg='钉钉 jssdk 错误回调'
-                });
+          dd.ready(function () {
+            dd.runtime.permission.requestAuthCode({
+              corpId: environment.corpId,
+              onSuccess: function (info) {
+                console.log('code:'+JSON.stringify(info))
+                const httpOptions = {
+                  params: {
+                    code: info.code,
+                    corpid: environment.corpId,
+                    meetingFileId: meetingFileId
+                  }
+                };
+                that.http.get('/api/dingtalk/generation/imageList',httpOptions).subscribe((data:any) => {
+                    console.log('success fetch images:',data);
+                    that.images = data.urls;
+                    that.title=data.title;
+                    dd.biz.navigation.setTitle({
+                      title : data.title,//控制标题文本，空字符串表示显示默认文本
+                      onSuccess : function(result) {
+                        /*结构
+                        {
+                        }*/
+                      },
+                      onFail : function(err) {
+                        console.error('设置标题时出错 '+ JSON.stringify(err));
+                      }
+                    });
+                    // console.log(that.title,that.titleService.getTitle());
+                    that.mode='determinate'
+                    that.ref.markForCheck();
+                    that.ref.detectChanges();
+                  },
+                  error => {
+                    that.mode='determinate'
+                    that.msg='很抱歉，资源没找到。'
+                    console.error('获取图片数据时出错 '+ JSON.stringify(error));
+                    that.ref.markForCheck();
+                    that.ref.detectChanges();
+                  },
+                  () => console.log('HTTP Observable2 completed...'));
               },
-              error => {
-                console.error('获取jssdk config 时出错 '+ JSON.stringify(error));
+              onFail: function (err) {
+                console.error('获取认证Code失败: ' + JSON.stringify(err));
                 that.mode='determinate'
-                that.msg='获取jssdk config 时出错'
-              },
-              () => console.log('HTTP Observable1 completed...')
-            );
+                that.msg='获取认证Code失败'
+              }
+            });
+          });
+          dd.error(function (err) {
+            console.error('钉钉 jssdk 错误回调: ' + JSON.stringify(err));
+            that.mode='determinate'
+            that.msg='钉钉 jssdk 错误回调'
+          });
         }
       },
       error => {
