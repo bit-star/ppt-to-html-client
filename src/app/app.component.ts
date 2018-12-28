@@ -44,6 +44,8 @@ export class AppComponent   implements OnInit ,AfterViewInit  {
   constructor(private http: HttpClient, private ref: ChangeDetectorRef, private activatedRoute: ActivatedRoute, private titleService: Title) {
   }
 
+
+
   ngAfterViewInit(): void {
     let that = this;
     this.activatedRoute.queryParams.subscribe((params: Params) => {
@@ -53,42 +55,93 @@ export class AppComponent   implements OnInit ,AfterViewInit  {
             dd.runtime.permission.requestAuthCode({
               corpId: environment.corpId,
               onSuccess: function (info) {
-                console.log('code:'+JSON.stringify(info))
-                const httpOptions = {
-                  params: {
-                    code: info.code,
-                    corpid: environment.corpId,
-                    meetingFileId: meetingFileId
+
+
+                let IMAGE_URL = '/api/dingtalk/generation/imageList?code='+info.code+'&corpid='+environment.corpId+'&meetingFileId='+meetingFileId;
+                let xhr = new XMLHttpRequest(); // (1)
+                xhr.open("GET", IMAGE_URL); // (2)
+                xhr.onreadystatechange = () => { // (3)
+                  if (xhr.readyState == 4 ) { // (4)
+                    if(xhr.status == 200){
+                      if (xhr.responseText) {
+                        try {
+                          const data = JSON.parse(xhr.responseText); // (5)
+                          console.log('success fetch images:',data);
+                          that.images = data.urls;
+                          that.title=data.title;
+                          dd.biz.navigation.setTitle({
+                            title : data.title,//控制标题文本，空字符串表示显示默认文本
+                            onSuccess : function(result) {
+                              /*结构
+                              {
+                              }*/
+                            },
+                            onFail : function(err) {
+                              console.error('设置标题时出错 '+ JSON.stringify(err));
+                            }
+                          });
+                          // console.log(that.title,that.titleService.getTitle());
+                          that.mode='determinate'
+                          that.ref.markForCheck();
+                          that.ref.detectChanges();
+                        } catch (error) {
+                          that.mode='determinate'
+                          that.msg='很抱歉，资源没找到。'
+                          console.error('获取图片数据时出错 '+ JSON.stringify(error));
+                          that.ref.markForCheck();
+                          that.ref.detectChanges();
+                        }
+                      }
+                    }else{
+                      that.mode='determinate'
+                      that.msg='很抱歉，资源没找到。'
+                      console.error('获取图片数据时出错 ');
+                      that.ref.markForCheck();
+                      that.ref.detectChanges();
+                    }
+
                   }
                 };
-                that.http.get('/api/dingtalk/generation/imageList',httpOptions).subscribe((data:any) => {
-                    console.log('success fetch images:',data);
-                    that.images = data.urls;
-                    that.title=data.title;
-                    dd.biz.navigation.setTitle({
-                      title : data.title,//控制标题文本，空字符串表示显示默认文本
-                      onSuccess : function(result) {
-                        /*结构
-                        {
-                        }*/
-                      },
-                      onFail : function(err) {
-                        console.error('设置标题时出错 '+ JSON.stringify(err));
-                      }
-                    });
-                    // console.log(that.title,that.titleService.getTitle());
-                    that.mode='determinate'
-                    that.ref.markForCheck();
-                    that.ref.detectChanges();
-                  },
-                  error => {
-                    that.mode='determinate'
-                    that.msg='很抱歉，资源没找到。'
-                    console.error('获取图片数据时出错 '+ JSON.stringify(error));
-                    that.ref.markForCheck();
-                    that.ref.detectChanges();
-                  },
-                  () => console.log('HTTP Observable2 completed...'));
+                xhr.send(null); // (6)
+
+
+
+                // console.log('code:'+JSON.stringify(info))
+                // const httpOptions = {
+                //   params: {
+                //     code: info.code,
+                //     corpid: environment.corpId,
+                //     meetingFileId: meetingFileId
+                //   }
+                // };
+                // that.http.get('/api/dingtalk/generation/imageList',httpOptions).subscribe((data:any) => {
+                //     console.log('success fetch images:',data);
+                //     that.images = data.urls;
+                //     that.title=data.title;
+                //     dd.biz.navigation.setTitle({
+                //       title : data.title,//控制标题文本，空字符串表示显示默认文本
+                //       onSuccess : function(result) {
+                //         /*结构
+                //         {
+                //         }*/
+                //       },
+                //       onFail : function(err) {
+                //         console.error('设置标题时出错 '+ JSON.stringify(err));
+                //       }
+                //     });
+                //     // console.log(that.title,that.titleService.getTitle());
+                //     that.mode='determinate'
+                //     that.ref.markForCheck();
+                //     that.ref.detectChanges();
+                //   },
+                //   error => {
+                //     that.mode='determinate'
+                //     that.msg='很抱歉，资源没找到。'
+                //     console.error('获取图片数据时出错 '+ JSON.stringify(error));
+                //     that.ref.markForCheck();
+                //     that.ref.detectChanges();
+                //   },
+                //   () => console.log('HTTP Observable2 completed...'));
               },
               onFail: function (err) {
                 console.error('获取认证Code失败: ' + JSON.stringify(err));
@@ -112,8 +165,14 @@ export class AppComponent   implements OnInit ,AfterViewInit  {
       () => console.log('订阅路由参数完成...'));
   }
 
-  ngOnInit() {
 
+
+  getImages(code,meetingFileId) {
+
+  }
+  members:any
+  ngOnInit() {
+    // this.getMembers();
   }
 
   previewImage(event, image) {
